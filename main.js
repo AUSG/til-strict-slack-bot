@@ -23,16 +23,14 @@ const registeredUsers = {
 
 async function getYesterdayEntries() {
     const now = new Date();
-    now.setHours(now.getHours() + 9); // UTC → KST 변환
-
-    const today = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const yesterday = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
     const response = await notion.databases.query({
         database_id: databaseId,
         filter: {
             property: "날짜", // Notion의 날짜 필드 이름
             date: {
-                equals: today,
+                equals: yesterday,
             },
         },
     });
