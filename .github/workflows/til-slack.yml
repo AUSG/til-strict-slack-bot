@@ -2,7 +2,7 @@ name: Run Notion Slack Reminder
 
 on:
     schedule:
-        - cron: "10 15 * * *" # 매일 UTC 15:30 (KST 00:10)
+        - cron: "55 14 * * *" # 지연 고려 KST 00:00
     workflow_dispatch: # 수동 실행 가능
 
 jobs:
