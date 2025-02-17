@@ -1,28 +1,28 @@
 name: Run Notion Slack Reminder
 
 on:
-  schedule:
-    - cron: "30 15 * * *" # 매일 UTC 15:30 (KST 00:30)
-  workflow_dispatch: # 수동 실행 가능
+    schedule:
+        - cron: "10 15 * * *" # 매일 UTC 15:30 (KST 00:10)
+    workflow_dispatch: # 수동 실행 가능
 
 jobs:
-  run-script:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      
-      - name: Install dependencies
-        run: npm install
-      
-      - name: Run script
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: node script.js
+    run-script:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 18
+
+            - name: Install dependencies
+              run: npm install
+
+            - name: Run script
+              env:
+                  NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+                  NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+                  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+              run: node script.js
