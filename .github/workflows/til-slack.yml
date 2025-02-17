@@ -11,17 +11,14 @@ const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 // 미리 등록된 유저 리스트
 const registeredUsers = ["이현제", "진성 공", "김수진", '손수민', '박예준', '김도훈', '유하준', '홍혁준', '박가영'];
 
-async function getYesterdayEntries() {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const formattedDate = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
-
+async function getTodayEntries() {
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
   const response = await notion.databases.query({
     database_id: databaseId,
     filter: {
       property: "날짜", // Notion의 날짜 필드 이름
       date: {
-        equals: formattedDate,
+        equals: today,
       },
     },
   });
@@ -36,13 +33,14 @@ async function notifySlack(missingUsers) {
   if (missingUsers.length === 0) return;
 
   const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}`;
-  await axios.post(slackWebhookUrl, { text: message });
+  console.log(message);
+  // await axios.post(slackWebhookUrl, { text: message });
 }
 
 async function main() {
   try {
-    const yesterdayEntries = await getYesterdayEntries();
-    const writtenUsers = new Set(yesterdayEntries.flatMap((entry) => entry.user));
+    const todayEntries = await getTodayEntries();
+    const writtenUsers = new Set(todayEntries.flatMap((entry) => entry.user));
     const missingUsers = registeredUsers.filter((user) => !writtenUsers.has(user));
 
     console.log("작성한 유저:", writtenUsers);
