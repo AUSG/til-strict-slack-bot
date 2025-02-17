@@ -9,10 +9,23 @@ const databaseId = process.env.NOTION_DATABASE_ID;
 const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 
 // 미리 등록된 유저 리스트
-const registeredUsers = ["이현제", "진성 공", "김수진", "손수민", "박예준", "김도훈", "유하준", "홍혁준", "박가영"];
+const registeredUsers = {
+    "jun020216@sookmyung.ac.kr": "U07C0N85M2P", // 예준님
+    "itoodo12@gmail.com": "U07BY0KMU69", // 수민님
+    "maroony55@gmail.com": "U07BU0BSSK0", // 가영님
+    "gurwns9325@cau.ac.kr": "U07C32AK8KE", // 혁준님
+    "su10jin11@khu.ac.kr": "U07C19GL9V1", // 수진님
+    "wls4013@inu.ac.kr": "U07BL68MR8F", // 진성님
+    "hjforaws@gmail.com": "U07CDBSB2BB", // 현제님
+    "hajuny129@hufs.ac.kr": "U05FAS0GB99", // 하준님
+    "kdhhuns2000@gmail.com": "U07C1RDLFQS", // 도훈님
+};
 
 async function getYesterdayEntries() {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const now = new Date();
+    now.setHours(now.getHours() + 9); // UTC → KST 변환
+
+    const today = now.toISOString().split("T")[0]; // YYYY-MM-DD
 
     const response = await notion.databases.query({
         database_id: databaseId,
@@ -26,14 +39,14 @@ async function getYesterdayEntries() {
 
     return response.results.map((page) => ({
         id: page.id,
-        user: page.properties.사람?.people?.map((p) => p.name) || [],
+        user: page.properties.사람?.people?.map((user) => user.person.email) || [],
     }));
 }
 
 async function notifySlack(missingUsers) {
     if (missingUsers.length === 0) return;
 
-    const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}`;
+    const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
     await axios.post(slackWebhookUrl, {text: message});
 }
 
@@ -41,7 +54,11 @@ async function main() {
     try {
         const yesterdayEntries = await getYesterdayEntries();
         const writtenUsers = new Set(yesterdayEntries.flatMap((entry) => entry.user));
-        const missingUsers = registeredUsers.filter((user) => !writtenUsers.has(user));
+
+        // 미작성 유저 추출
+        const missingUsers = Object.keys(registeredUsers)
+            .filter((email) => !writtenUsers.has(email))
+            .map((email) => `<@${registeredUsers[email]}>`); // Slack 멘션 형식
 
         console.log("작성한 유저:", writtenUsers);
         console.log("미작성 유저:", missingUsers);
