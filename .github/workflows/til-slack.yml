@@ -1,55 +1,28 @@
-import { Client } from "@notionhq/client";
-import axios from "axios";
-import dotenv from "dotenv";
+name: Run Notion Slack Reminder
 
-dotenv.config();
+on:
+  schedule:
+    - cron: "30 15 * * *" # 매일 UTC 15:30 (KST 00:30)
+  workflow_dispatch: # 수동 실행 가능
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY });
-const databaseId = process.env.NOTION_DATABASE_ID;
-const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-
-// 미리 등록된 유저 리스트
-const registeredUsers = ["이현제", "진성 공", "김수진", '손수민', '박예준', '김도훈', '유하준', '홍혁준', '박가영'];
-
-async function getTodayEntries() {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-  const response = await notion.databases.query({
-    database_id: databaseId,
-    filter: {
-      property: "날짜", // Notion의 날짜 필드 이름
-      date: {
-        equals: today,
-      },
-    },
-  });
-
-  return response.results.map((page) => ({
-    id: page.id,
-    user: page.properties.사람 ?.people?.map((p) => p.name) || [],
-  }));
-}
-
-async function notifySlack(missingUsers) {
-  if (missingUsers.length === 0) return;
-
-  const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}`;
-  console.log(message);
-  // await axios.post(slackWebhookUrl, { text: message });
-}
-
-async function main() {
-  try {
-    const todayEntries = await getTodayEntries();
-    const writtenUsers = new Set(todayEntries.flatMap((entry) => entry.user));
-    const missingUsers = registeredUsers.filter((user) => !writtenUsers.has(user));
-
-    console.log("작성한 유저:", writtenUsers);
-    console.log("미작성 유저:", missingUsers);
-
-    await notifySlack(missingUsers);
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
-
-main();
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run script
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: node script.js
