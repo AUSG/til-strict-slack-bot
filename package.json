@@ -11,8 +11,10 @@
     "description": "",
     "dependencies": {
         "@notionhq/client": "^2.2.15",
+        "@slack/web-api": "^7.8.0",
         "axios": "^1.7.9",
         "dotenv": "^16.4.7",
+        "ioredis": "^5.5.0",
         "serverless": "^4.6.4",
         "serverless-offline": "^14.4.0"
     },
