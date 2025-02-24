@@ -1,0 +1,55 @@
+service: til-rest-bot
+
+frameworkVersion: "3"
+
+provider:
+    name: aws
+    runtime: nodejs18.x
+    region: ap-northeast-2
+    environment:
+        SLACK_BOT_TOKEN: ${env:SLACK_BOT_TOKEN}
+        NOTION_API_KEY: ${env:NOTION_API_KEY}
+        NOTION_DATABASE_ID: ${env:NOTION_DATABASE_ID}
+        SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
+        S3_BUCKET_NAME: ${self:service}-${self:provider.stage}-rest-periods
+        REGISTERED_USERS: ${env:REGISTERED_USERS}
+
+    # iam:
+    #     role:
+    #         statements:
+    #             - Effect: Allow
+    #               Action:
+    #                   -
+    #                   -
+    #               Resource:
+    #                   -
+
+functions:
+    restHandler:
+        handler: src/handlers/rest-til.handler
+        events:
+            - http:
+                  path: /slack/events
+                  method: post
+
+    tilCheck:
+        handler: src/handlers/check-til.handler
+        events:
+            - schedule: cron(0 15 * * ? 1-5) # UTC 15:00 (KST 00:00)
+
+resources:
+    Resources:
+        MyElasticacheCluster:
+            Type: AWS::ElastiCache::CacheCluster
+            Properties:
+                CacheNodeType:
+                Engine: redis
+                NumCacheNodes: 1
+                VpcSecurityGroupIds:
+                    -
+                CacheSubnetGroupName:
+                ClusterName:
+
+plugins:
+    - serverless-plugin-typescript
+    - serverless-offline
