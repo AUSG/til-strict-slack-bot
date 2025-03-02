@@ -14,10 +14,11 @@ export default class SlackService {
 
     async sendMessage(channel: Channel, text: string): Promise<void> {
         try {
-            await this.slackClient.chat.postMessage({
-                channel,
-                text,
-            });
+            console.log("Slack 메시지 전송:", channel, text);
+            // await this.slackClient.chat.postMessage({
+            //     channel,
+            //     text,
+            // });
         } catch (error) {
             console.error("Slack 메시지 전송 실패:", error);
             throw error;
@@ -26,7 +27,8 @@ export default class SlackService {
 
     async sendTILNotification(message: string): Promise<void> {
         try {
-            await axios.post(this.webhookUrl, {text: message});
+            console.log("Slack 메시지 전송:", message);
+            // await axios.post(this.webhookUrl, {text: message});
         } catch (error) {
             console.error("TIL Slack Webhook 전송 실패:", error);
             throw error;

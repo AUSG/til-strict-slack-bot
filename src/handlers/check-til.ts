@@ -27,10 +27,10 @@ export const handler = async (event: any) => {
             })
             .map(([_, slackId]) => `<@${slackId}>`);
 
-        if (missingUsers.length > 0) {
-            const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
-            await slackService.sendTILNotification(message);
-        }
+        // if (missingUsers.length > 0) {
+        //     const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
+        //     await slackService.sendTILNotification(message);
+        // }
 
         return {
             statusCode: 200,

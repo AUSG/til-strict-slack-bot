@@ -8,6 +8,8 @@ export const handler = async (event: any) => {
         // API Gateway로부터 받은 이벤트 파싱
         const body = JSON.parse(event.body);
 
+        console.log("-->", body);
+
         // Slack의 이벤트 검증
         if (body.type === "url_verification") {
             return {
