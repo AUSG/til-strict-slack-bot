@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const notion = new Client({auth: process.env.NOTION_API_KEY});
-const databaseId = process.env.NOTION_DATABASE_ID;
-const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
+const databaseId = process.env.TIL_NOTION_DATABASE_ID;
+const slackWebhookUrl = process.env.TIL_SLACK_WEBHOOK_URL;
 
 // 미리 등록된 유저 리스트
 const registeredUsers = {
