@@ -23,6 +23,6 @@ jobs:
             - name: Run script
               env:
                   NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-                  NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-                  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+                  TIL_NOTION_DATABASE_ID: ${{ secrets.TIL_NOTION_DATABASE_ID }}
+                  TIL_SLACK_WEBHOOK_URL: ${{ secrets.TIL_SLACK_WEBHOOK_URL }}
               run: node main.js
