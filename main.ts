@@ -72,9 +72,7 @@ async function notifySlack(missingUsers) {
 async function main() {
     try {
         const yesterdayEntries = await getYesterdayEntries();
-        console.log("어제 작성한 유저", yesterdayEntries);
         const restUsers = await getRestUsers();
-        console.log("휴식 명단 이메일", restUsers);
         const writtenUsers = new Set(yesterdayEntries.flatMap((entry) => entry.user));
         const restUserEmails = new Set(restUsers.flatMap((user) => user.email || []));
 
