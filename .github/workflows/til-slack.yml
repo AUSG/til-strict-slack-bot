@@ -25,4 +25,5 @@ jobs:
                   NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
                   TIL_NOTION_DATABASE_ID: ${{ secrets.TIL_NOTION_DATABASE_ID }}
                   TIL_SLACK_WEBHOOK_URL: ${{ secrets.TIL_SLACK_WEBHOOK_URL }}
+                  TIL_REST_DATABASE_ID: ${{ secrets.TIL_REST_DATABASE_ID }}
               run: npm run start
