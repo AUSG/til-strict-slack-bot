@@ -1,15 +1,15 @@
-import {Client} from "@notionhq/client";
+import { Client } from "@notionhq/client";
 
 import axios from "axios";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const notion = new Client({auth: process.env.NOTION_API_KEY});
+const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const databaseId = process.env.TIL_NOTION_DATABASE_ID;
 const slackWebhookUrl = process.env.TIL_SLACK_WEBHOOK_URL;
 const restDatabaseId = process.env.TIL_REST_DATABASE_ID;
- 
+
 // 미리 등록된 유저 리스트
 const registeredUsers = {
     "kill5038@gmail.com": "U07C2RS4VRT", // 상혁님
@@ -41,6 +41,7 @@ async function getYesterdayEntries() {
     return response.results.map((page: any) => ({
         id: page.id,
         user: page.properties.사람?.people?.map((user) => user.person.email) || [],
+        categories: page.properties.분야?.multi_select?.map((tag) => tag.name) || [],
     }));
 }
 
@@ -67,14 +68,18 @@ async function notifySlack(missingUsers) {
     if (missingUsers.length === 0) return;
 
     const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
-    await axios.post(slackWebhookUrl!, {text: message});
+    await axios.post(slackWebhookUrl!, { text: message });
 }
 
 async function main() {
     try {
         const yesterdayEntries = await getYesterdayEntries();
         const restUsers = await getRestUsers();
-        const writtenUsers = new Set(yesterdayEntries.flatMap((entry) => entry.user));
+        const writtenUsers = new Set(
+            yesterdayEntries
+                .filter((entry) => !(entry.categories.length === 1 && entry.categories[0] === "쓰는 중"))
+                .flatMap((entry) => entry.user)
+        );
         const restUserEmails = new Set(restUsers.flatMap((user) => user.email || []));
 
         // 미작성 유저 추출 (휴식 중인 유저 제외)
