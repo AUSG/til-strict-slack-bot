@@ -102,7 +102,7 @@ async function getRestUsers() {
 async function notifySlack(missingUsers: string[]) {
     if (missingUsers.length === 0) return;
 
-    const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
+    const message = `🚨 안쓰고 일찍 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
     console.log(message);
     await axios.post(slackWebhookUrl!, { text: message });
 }
