@@ -25,10 +25,15 @@ const registeredUsers = {
 };
 
 function getTargetDateStr(): string {
-    const now = new Date();
-    // UTC 기준 시간에서 9시간 더하면 KST
+    const now = new Date(); // 실행되는 현재 시간
+    // KST 시간대 보정 (UTC 기준 + 9시간)
     const kstTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-    // KST 시간에서 4시간을 빼서 마감일(대상 일자)을 유도 (새벽 0~3시 산입)
+    
+    // 새벽 3시(KST)에 동작한다고 가정할 때, 우리가 확인해야 할 당일(마감일)은 바로 "어제"입니다.
+    // 00~03시에 돌 때는 전날이 타겟이 되어야 하므로 넉넉하게 -4시간을 해줍니다.
+    // 주의: 로컬 머신에서 현재 낮시간(예: 3월 12일 21시)에 돌리면 4시간 빼도 여전히 "3월 12일"이 나오게 됩니다. 맞습니다.
+    // 그러나 깃허브 액션은 UTC 18:00 (KST 3월 13일 03:00)에 돕니다.
+    // 3월 13일 03:00 에서 4시간을 빼면 "3월 12일 23:00"이 되므로 타겟이 "3월 12일"로 정상 도출됩니다.
     const targetKSTTime = new Date(kstTime.getTime() - 4 * 60 * 60 * 1000);
 
     return `${targetKSTTime.getUTCFullYear()}-${String(targetKSTTime.getUTCMonth() + 1).padStart(2, "0")}-${String(targetKSTTime.getUTCDate()).padStart(2, "0")}`;
@@ -94,10 +99,11 @@ async function getRestUsers() {
     }));
 }
 
-async function notifySlack(missingUsers) {
+async function notifySlack(missingUsers: string[]) {
     if (missingUsers.length === 0) return;
 
     const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
+    console.log(message);
     await axios.post(slackWebhookUrl!, { text: message });
 }
 
