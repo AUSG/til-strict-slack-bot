@@ -1,7 +1,15 @@
 import { Client } from "@notionhq/client";
 
 import axios from "axios";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import * as dotenv from "dotenv";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const KST = "Asia/Seoul";
 
 dotenv.config();
 
@@ -25,26 +33,17 @@ const registeredUsers = {
 };
 
 function getTargetDateStr(): string {
-    const now = new Date(); // 실행되는 현재 시간
-    // KST 시간대 보정 (UTC 기준 + 9시간)
-    const kstTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-
-    // 새벽 3시(KST)에 동작한다고 가정할 때, 우리가 확인해야 할 당일(마감일)은 바로 "어제"입니다.
-    // 00~04시에 돌 때는 전날이 타겟이 되어야 하므로 넉넉하게 -5시간을 해줍니다.
-    // 주의: 로컬 머신에서 현재 낮시간(예: 3월 12일 21시)에 돌리면 5시간 빼도 여전히 "3월 12일"이 나오게 됩니다. 맞습니다.
-    // 그러나 깃허브 액션은 UTC 18:00 (KST 3월 13일 03:00)에 돕니다. (때론 04:20 까지 지연되기도 함)
-    // 3월 13일 04:20 에서 5시간을 빼면 "3월 12일 23:20"이 되므로 타겟이 "3월 12일"로 정상 도출됩니다.
-    const targetKSTTime = new Date(kstTime.getTime() - 5 * 60 * 60 * 1000);
-
-    return `${targetKSTTime.getUTCFullYear()}-${String(targetKSTTime.getUTCMonth() + 1).padStart(2, "0")}-${String(targetKSTTime.getUTCDate()).padStart(2, "0")}`;
+    // cron은 UTC 18:00 (KST 익일 03:00)에 돌며, 마감일은 항상 KST 기준 "어제"입니다.
+    // GitHub Actions가 수 시간 지연돼도(예: KST 05시 이후 실행) 같은 KST 날 안이면
+    // "어제"는 변하지 않으므로, KST 현재 시각에서 명시적으로 하루를 뺍니다.
+    return dayjs().tz(KST).subtract(1, "day").format("YYYY-MM-DD");
 }
 
 async function getYesterdayEntries() {
     const targetDateStr = getTargetDateStr();
 
     // 타임존 이슈를 피하기 위해 Notion에서는 넉넉히 최근 이틀치 데이터를 모두 가져옵니다.
-    const fetchStartDateObj = new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000);
-    const fetchStartDateStr = fetchStartDateObj.toISOString().split("T")[0];
+    const fetchStartDateStr = dayjs().tz(KST).subtract(2, "day").format("YYYY-MM-DD");
 
     const response = await notion.databases.query({
         database_id: databaseId!,
@@ -61,17 +60,12 @@ async function getYesterdayEntries() {
         const pageDateStr = page.properties["날짜"]?.date?.start;
         if (!pageDateStr) return false;
 
-        // 시간에 대한 정보가 있으면 (예: 2026-03-06T07:50:00.000+09:00)
+        // 시간 정보가 있으면(예: 2026-03-06T07:50:00.000+09:00) KST 기준 날짜로 변환해 비교,
+        // 날짜만 있으면("2026-03-06") 그대로 비교.
         if (pageDateStr.includes("T")) {
-            const dateObj = new Date(pageDateStr);
-            // dateObj에 9시간 더해서 KST 기준으로 변환 (getUTC* 로 날짜 추출 시 로컬시간 활용 가능)
-            const kstDateObj = new Date(dateObj.getTime() + 9 * 60 * 60 * 1000);
-            const kstFormattedStr = `${kstDateObj.getUTCFullYear()}-${String(kstDateObj.getUTCMonth() + 1).padStart(2, "0")}-${String(kstDateObj.getUTCDate()).padStart(2, "0")}`;
-            return kstFormattedStr === targetDateStr;
-        } else {
-            // 날짜만 있는 경우 ("2026-03-06")
-            return pageDateStr === targetDateStr;
+            return dayjs(pageDateStr).tz(KST).format("YYYY-MM-DD") === targetDateStr;
         }
+        return pageDateStr === targetDateStr;
     });
 
     return filteredResults.map((page: any) => ({
