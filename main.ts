@@ -116,10 +116,22 @@ async function getRestUsers() {
   );
 }
 
+// 벌금 알림 문구 목록. mentions 자리에 미작성 유저 멘션이 들어간다.
+// 매 실행마다 랜덤으로 하나를 골라 랜덤 요소 맛있게 가미.
+const messageTemplates: ((mentions: string) => string)[] = [
+  (mentions) => `🚨 안쓰고 뭐하셨어요! : ${mentions}님!`,
+  (mentions) => `5000원 개이득 🤩 : ${mentions}`,
+  (mentions) => `자느라 못 쓴 사람 💤 : ${mentions}`,
+  (mentions) => `이 사람이 회식하고 싶대요🍻 : ${mentions}`,
+];
+
 async function notifySlack(missingUsers: string[]) {
   if (missingUsers.length === 0) return;
 
-  const message = `🚨 안쓰고 뭐하셨어요! : ${missingUsers.join(", ")}님!`;
+  const mentions = missingUsers.join(", ");
+  const template =
+    messageTemplates[Math.floor(Math.random() * messageTemplates.length)];
+  const message = template(mentions);
   console.log(message);
   await axios.post(slackWebhookUrl!, { text: message });
 }
