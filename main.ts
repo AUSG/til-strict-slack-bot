@@ -1,5 +1,4 @@
 import { Client } from "@notionhq/client";
-
 import axios from "axios";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -10,6 +9,10 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const KST = "Asia/Seoul";
+
+// 마감 유예: "1/1자 글"은 익일(1/2) 03:00까지 작성하면 1/1로 인정한다.
+// 즉 작성 시각(KST)에서 이 시간을 빼면 그 글이 "속하는 날짜"가 나온다.
+const GRACE_HOURS = 3;
 
 dotenv.config();
 
@@ -36,11 +39,20 @@ function getTargetDateStr(): string {
   return dayjs().tz(KST).subtract(1, "day").format("YYYY-MM-DD");
 }
 
+// 글의 created_time(UTC ISO8601)을 받아 그 글이 "속하는 날짜"(KST)를 계산한다.
+// 규칙: 익일 03:00까지 작성분은 전날로 인정 → KST 시각에서 GRACE_HOURS를 빼고 날짜만 취한다.
+//   1/2 02:59 → -3h → 1/1 23:59 → "1/1" 로 인정
+//   1/2 03:00 → -3h → 1/2 00:00 → "1/2" (마감 초과)
+//   1/1 15:00 → -3h → 1/1 12:00 → "1/1"
+function getEntryDateStr(createdTime: string): string {
+  return dayjs(createdTime).tz(KST).subtract(GRACE_HOURS, "hour").format("YYYY-MM-DD");
+}
+
 // Notion people 항목에서 이메일을 뽑는다.
 // 일부 항목은 person이 펼쳐지지 않고 id만 오는 경우가 있어(게스트/외부 유저 등),
 // person.email이 없으면 users.retrieve(id)로 이메일을 보강한다. 끝내 못 구하면 버린다.
 // (옵셔널 체이닝만 하면 크래시는 막지만 미펼침 휴식자가 그냥 버려져 벌금 대상이 되는
-//  부작용이 있어, 백필로 실제 이메일까지 복구한다.)
+// 부작용이 있어, 백필로 실제 이메일까지 복구한다.)
 async function resolveEmails(people: any[] | undefined): Promise<string[]> {
   const emails = await Promise.all(
     (people || []).map(async (u: any) => {
@@ -59,7 +71,7 @@ async function resolveEmails(people: any[] | undefined): Promise<string[]> {
 async function getYesterdayEntries() {
   const targetDateStr = getTargetDateStr();
 
-  // 타임존 이슈를 피하기 위해 Notion에서는 넉넉히 최근 이틀치 데이터를 모두 가져옵니다.
+  // 타임존 및 유예시간 이슈를 피하기 위해 Notion에서는 넉넉히 최근 이틀치 데이터를 모두 가져옵니다.
   const fetchStartDateStr = dayjs()
     .tz(KST)
     .subtract(2, "day")
@@ -76,12 +88,14 @@ async function getYesterdayEntries() {
     },
   });
 
-  // 자바스크립트 단에서 실제 Target Date와 대조하여 정확하게 필터링
+  // 자바스크립트 단에서 실제 Target Date와 대조하여 정확하게 필터링.
+  // created_time을 KST 날짜 그대로 비교하면 새벽 3시 유예가 반영되지 않아,
+  // 예를 들어 1/1자 글을 1/2 01:30에 쓴 사람이 미작성으로 오탐된다.
+  // getEntryDateStr가 유예시간을 빼고 "속하는 날짜"를 돌려주므로 이를 target과 비교한다.
   const filteredResults = response.results.filter((page: any) => {
-    // created_time은 UTC ISO8601(예: 2026-07-01T05:00:00.000Z)이므로 KST 날짜로 변환해 비교.
     const pageDateStr = page.created_time;
     if (!pageDateStr) return false;
-    return dayjs(pageDateStr).tz(KST).format("YYYY-MM-DD") === targetDateStr;
+    return getEntryDateStr(pageDateStr) === targetDateStr;
   });
 
   return Promise.all(
@@ -132,6 +146,7 @@ async function notifySlack(missingUsers: string[]) {
   const template =
     messageTemplates[Math.floor(Math.random() * messageTemplates.length)];
   const message = template(mentions);
+
   console.log(message);
   await axios.post(slackWebhookUrl!, { text: message });
 }
@@ -140,6 +155,7 @@ async function main() {
   try {
     const yesterdayEntries = await getYesterdayEntries();
     const restUsers = await getRestUsers();
+
     const writtenUsers = new Set(
       yesterdayEntries
         .filter(
@@ -150,6 +166,7 @@ async function main() {
         )
         .flatMap((entry) => entry.user),
     );
+
     const restUserEmails = new Set(
       restUsers.flatMap((user) => user.email || []),
     );
