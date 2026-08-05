@@ -4,7 +4,8 @@
     "main": "main.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "ts-node main.ts"
+        "start": "ts-node main.ts",
+        "start:retro": "ts-node retro-reminder.ts"
     },
     "author": "",
     "license": "ISC",

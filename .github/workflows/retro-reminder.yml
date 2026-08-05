@@ -1,0 +1,38 @@
+name: Run Retro Reminder
+
+on:
+    schedule:
+        - cron: "00 13 * * 1" # KST 월요일 22:00
+    workflow_dispatch: # 수동 실행 가능
+        inputs:
+            force:
+                description: "격주 판정을 무시하고 무조건 발송"
+                type: boolean
+                default: false
+
+jobs:
+    run-script:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Install dependencies
+              run: npm install
+
+            - name: Run script
+              env:
+                  # 회고 주기 기준일. 연휴로 미뤘다면 이 변수만 새 회고 수요일로 바꾸면 된다.
+                  # Settings → Secrets and variables → Actions → Variables 에서 수정.
+                  RETRO_ANCHOR_DATE: ${{ vars.RETRO_ANCHOR_DATE }}
+                  RETRO_INTERVAL_WEEKS: ${{ vars.RETRO_INTERVAL_WEEKS }}
+                  RETRO_MENTION: ${{ vars.RETRO_MENTION }}
+                  RETRO_SLACK_WEBHOOK_URL: ${{ secrets.RETRO_SLACK_WEBHOOK_URL }}
+                  TIL_SLACK_WEBHOOK_URL: ${{ secrets.TIL_SLACK_WEBHOOK_URL }}
+                  RETRO_FORCE: ${{ inputs.force }}
+              run: npm run start:retro
