@@ -49,8 +49,9 @@ const force = process.env.RETRO_FORCE === "true";
 const slackWebhookUrl =
   process.env.RETRO_SLACK_WEBHOOK_URL || process.env.TIL_SLACK_WEBHOOK_URL;
 
-// 멘션 대상. 채널 전체를 깨우기 싫으면 <!here> 나 <!subteam^팀ID> 로 바꾸면 된다.
-const mention = process.env.RETRO_MENTION || "<!channel>";
+// 멘션 대상. 밤 10시에 오는 알림이라 자리에 있는 사람만 깨우도록 <!here>를 기본으로 둔다.
+// 채널 전원(오프라인 포함)을 부르려면 <!channel>, 특정 그룹만이면 <!subteam^팀ID>.
+const mention = process.env.RETRO_MENTION || "<!here>";
 
 // 오늘(KST) 기준으로 아직 오지 않은 가장 가까운 수요일. 오늘이 수요일이면 오늘.
 // "실행일이 월요일이니 +2일" 로 하드코딩하지 않는 이유는, 수동 실행(workflow_dispatch)이나
