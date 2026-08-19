@@ -30,6 +30,11 @@ const registeredUsers = {
   "jun020216@sookmyung.ac.kr": "U07C0N85M2P", // 박예준(예준)님
   "chaos296@cau.ac.kr": "U07C0TFGV4J", // 김보겸(Bo keum Kim)님
   "sookidayo@gmail.com": "U0969CSFCNM", // 지현숙(sook)님
+  "manamana32321@gmail.com": "U0BH9VDB8F3", // 손장수님
+  "dlguswls4325@gmail.com": "U0BH99SG26M", // 이현진님
+  "yenachang924@gmail.com": "U0BH8Q48MNV", // 장예나님
+  "ha2pine2s@gmail.com": "U0BH471R6R3", // 박소윤님
+  "eunsochoi01@gmail.com": "U0BJ15DP4QY", // 최은소님
 };
 
 function getTargetDateStr(): string {
