@@ -33,7 +33,7 @@ const registeredUsers = {
   "manamana32321@gmail.com": "U0BH9VDB8F3", // 손장수님
   "dlguswls4325@gmail.com": "U0BH99SG26M", // 이현진님
   "yenachang924@gmail.com": "U0BH8Q48MNV", // 장예나님
-  "ha2pine2s@gmail.com": "U0BH471R6R3", // 박소윤님
+  "happine2s@sookmyung.ac.kr": "U0BH471R6R3", // 박소윤님
   "eunsochoi01@gmail.com": "U0BJ15DP4QY", // 최은소님
 };
 
@@ -113,21 +113,52 @@ async function getYesterdayEntries() {
   );
 }
 
+// 휴식 기간 판정
+// - 범위(start → end) : start <= target <= end 이면 휴식 중
+// - 단일 날짜(start만) : 속성명이 "이때까지 쉴래요"이므로 target <= start 이면 휴식 중
+//
+// Notion의 date 필터(on_or_after 등)는 범위 속성일 때 start만 비교하기 때문에
+// "8/18 → 8/23" 처럼 이미 시작된 휴식은 target(8/19)보다 start가 과거라서 걸러져 버린다.
+// 휴식 한가운데 있는 사람이 통째로 누락되던 원인이라, 판정을 JS로 옮겼다.
+function isRestingOn(
+  date: { start?: string; end?: string | null } | undefined,
+  targetDateStr: string,
+): boolean {
+  if (!date?.start) return false;
+
+  // 시간까지 포함된 값(2026-08-18T00:00:00+09:00)도 안전하게 날짜만 잘라낸다.
+  const start = date.start.slice(0, 10);
+  const end = date.end ? date.end.slice(0, 10) : undefined;
+
+  return end
+    ? start <= targetDateStr && targetDateStr <= end
+    : targetDateStr <= start;
+}
+
 async function getRestUsers() {
   const targetDateStr = getTargetDateStr();
 
-  const response = await notion.databases.query({
-    database_id: restDatabaseId!,
-    filter: {
-      property: "이때까지 쉴래요",
-      date: {
-        on_or_after: targetDateStr,
-      },
-    },
-  });
+  // 위 이유로 서버 필터를 쓰지 않고 전체를 가져와 코드에서 판정한다.
+  // 휴식 DB는 레코드 수가 적어 부담이 없고, 페이지네이션만 처리해 두면 누락이 없다.
+  const pages: any[] = [];
+  let cursor: string | undefined = undefined;
+
+  do {
+    const response: any = await notion.databases.query({
+      database_id: restDatabaseId!,
+      start_cursor: cursor,
+      page_size: 100,
+    });
+    pages.push(...response.results);
+    cursor = response.has_more ? response.next_cursor : undefined;
+  } while (cursor);
+
+  const restingPages = pages.filter((page: any) =>
+    isRestingOn(page.properties["이때까지 쉴래요"]?.date, targetDateStr),
+  );
 
   return Promise.all(
-    response.results.map(async (page: any) => ({
+    restingPages.map(async (page: any) => ({
       // 휴식 DB에는 person이 해석되지 않는 항목이 다수 존재(알람 미발송의 근본 원인이었음).
       // resolveEmails로 users.retrieve 백필까지 해서 휴식자를 정확히 인식한다.
       email: await resolveEmails(page.properties.사람?.people),
@@ -181,6 +212,7 @@ async function main() {
       .filter((email) => !writtenUsers.has(email) && !restUserEmails.has(email))
       .map((email) => `<@${registeredUsers[email]}>`);
 
+    console.log("기준 날짜:", getTargetDateStr());
     console.log("작성한 유저:", writtenUsers);
     console.log("휴식 중인 유저:", restUserEmails);
     console.log("미작성 유저:", missingUsers);
