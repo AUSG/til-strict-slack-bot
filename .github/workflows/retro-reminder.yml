@@ -2,7 +2,8 @@ name: Run Retro Reminder
 
 on:
     schedule:
-        - cron: "00 13 * * 1" # KST 월요일 22:00
+        # 정각(00분)은 GitHub Actions 큐가 가장 붐비는 시간이라 1분 앞당겨 59분에 건다.
+        - cron: "59 12 * * 1" # KST 월요일 21:59
     workflow_dispatch: # 수동 실행 가능
         inputs:
             force:
@@ -13,6 +14,8 @@ on:
 jobs:
     run-script:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write # 발송 후 빈 커밋 push용
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -26,6 +29,7 @@ jobs:
               run: npm install
 
             - name: Run script
+              id: run
               env:
                   # 회고 주기 기준일. 연휴로 미뤘다면 이 변수만 새 회고 수요일로 바꾸면 된다.
                   # Settings → Secrets and variables → Actions → Variables 에서 수정.
@@ -36,3 +40,13 @@ jobs:
                   TIL_SLACK_WEBHOOK_URL: ${{ secrets.TIL_SLACK_WEBHOOK_URL }}
                   RETRO_FORCE: ${{ inputs.force }}
               run: npm run start:retro
+
+            # public 저장소는 60일간 커밋이 없으면 GitHub가 스케줄 워크플로를 자동으로 끈다.
+            # 실제로 발송한 회고 주(2주마다)에만 빈 커밋을 남겨 저장소가 "활동 중"으로 유지되게 한다.
+            - name: Keepalive commit
+              if: steps.run.outputs.sent == 'true'
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git commit --allow-empty -m "chore: 회고 리마인더 발송 $(TZ=Asia/Seoul date +%Y-%m-%d)"
+                  git push
