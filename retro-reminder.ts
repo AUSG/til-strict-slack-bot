@@ -1,10 +1,12 @@
 // 격주 수요일 회고 리마인더.
-// 매주 월요일 22:00(KST)에 GitHub Actions로 실행되지만, 실제 발송은 "회고하는 주"에만 한다.
-// (워크플로: .github/workflows/retro-reminder.yml, cron "00 13 * * 1" = KST 월 22:00)
+// 매주 월요일 21:59(KST)에 GitHub Actions로 실행되지만, 실제 발송은 "회고하는 주"에만 한다.
+// (워크플로: .github/workflows/retro-reminder.yml, cron "59 12 * * 1" = KST 월 21:59)
+// 정각(00분)은 GitHub Actions 큐가 가장 붐비는 시간이라 1분 앞당겨 두었다.
 //
 // 회고 주 판정은 RETRO_ANCHOR_DATE 하나로만 이뤄진다. 아래 "격주 주기 제어" 블록 참고.
 // 매 회차마다 값을 갱신할 필요는 없다. 한 번 넣어두면 몇 년이 지나도 계속 맞는다.
 import axios from "axios";
+import * as fs from "fs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -153,6 +155,14 @@ async function main() {
 
   console.log(message);
   await axios.post(slackWebhookUrl, { text: message });
+
+  // 실제로 발송했음을 워크플로에 알린다. 워크플로는 이 출력을 보고 빈 커밋을 하나 남긴다.
+  // public 저장소는 60일간 커밋이 없으면 GitHub가 스케줄 워크플로를 자동으로 꺼 버리는데,
+  // 회고 주마다(2주) 커밋이 생기면 그 조건에 걸리지 않는다. 로컬 실행 시에는 GITHUB_OUTPUT이
+  // 없으므로 아무 일도 하지 않는다.
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(process.env.GITHUB_OUTPUT, "sent=true\n");
+  }
 }
 
 main().catch((error) => {

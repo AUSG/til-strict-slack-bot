@@ -2,7 +2,8 @@ name: Run Notion Slack Reminder
 
 on:
     schedule:
-        - cron: "00 18 * * 1-5" # KST 00:00
+        # 정각(00분)은 GitHub Actions 큐가 가장 붐비는 시간이라 1분 앞당겨 59분에 건다.
+        - cron: "59 17 * * 1-5" # UTC 17:59 = KST 02:59 (화~토)
     workflow_dispatch: # 수동 실행 가능
 
 jobs:
